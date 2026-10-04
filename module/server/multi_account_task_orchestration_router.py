@@ -102,6 +102,16 @@ def _all_shared_account_sections(script_name: str) -> dict[str, object]:
     }
 
 
+def _section_accounts(section):
+    """Yield mutable account lists, including every normal instance in a collection."""
+    instances = getattr(section, "instance_list", None)
+    if instances is not None:
+        for instance in instances:
+            yield instance.normal.account_list
+    else:
+        yield section.account_list
+
+
 def _library(script_name: str):
     library = getattr(mm.config_cache(script_name).model, "multi_account_shared_accounts", None)
     if library is None:
@@ -159,6 +169,7 @@ async def _broadcast_shared_account_overviews(script_name: str, sections: dict[s
         ("multi_account_repeat_timed", "timed"),
         ("multi_account_repeat_new_fixed", "fixed"),
         ("multi_account_task_orchestration", "orchestration"),
+        ("multi_account_repeat_new_collection", "normal_collection"),
     ) if key in sections)
     await broadcast_schedule_overviews(script_name, kinds, mm)
 
@@ -411,10 +422,14 @@ async def set_public_account_value(script_name: str, identifier: str, field: str
         account.identifier = new_identifier
         sections = _all_shared_account_sections(script_name)
         for section in sections.values():
-            for task_account in section.account_list:
-                if task_account.public_account_identifier == old_identifier:
-                    task_account.public_account_identifier = new_identifier
-                    _sync_task_account(task_account, account)
+            for accounts in _section_accounts(section):
+                for task_account in accounts:
+                    if task_account.public_account_identifier == old_identifier:
+                        task_account.public_account_identifier = new_identifier
+                        _sync_task_account(task_account, account)
+            records = getattr(section, "shared_runtime_records", None)
+            if records is not None and old_identifier in records:
+                records[new_identifier] = records.pop(old_identifier)
         _refresh_all_outer_schedulers(script_name, sections)
         _save(script_name, multi_account_shared_accounts=library, **sections)
         await _broadcast_shared_account_overviews(script_name, sections)
@@ -435,9 +450,10 @@ async def set_public_account_value(script_name: str, identifier: str, field: str
         raise HTTPException(status_code=400, detail=f"公共账号参数无效：{exc}") from exc
     sections = _all_shared_account_sections(script_name)
     for section in sections.values():
-        for task_account in section.account_list:
-            if task_account.public_account_identifier == account.identifier:
-                _sync_task_account(task_account, account)
+        for accounts in _section_accounts(section):
+            for task_account in accounts:
+                if task_account.public_account_identifier == account.identifier:
+                    _sync_task_account(task_account, account)
     _refresh_all_outer_schedulers(script_name, sections)
     _save(script_name, multi_account_shared_accounts=library, **sections)
     await _broadcast_shared_account_overviews(script_name, sections)
@@ -496,9 +512,10 @@ async def copy_public_accounts_to_scripts(
                 # 账号总开关只属于目标 OAS 实例，复制登录资料时不能把源实例的停用状态带过去。
                 target_account.enabled = True
             for section in target_sections.values():
-                for task_account in section.account_list:
-                    if task_account.public_account_identifier == target_account.identifier:
-                        _sync_task_account(task_account, target_account)
+                for accounts in _section_accounts(section):
+                    for task_account in accounts:
+                        if task_account.public_account_identifier == target_account.identifier:
+                            _sync_task_account(task_account, target_account)
         target_library.account_list = [
             item for item in target_library.account_list if item.identifier.strip()
         ]
@@ -538,7 +555,18 @@ async def delete_public_account(script_name: str, identifier: str):
     library.account_list = [item for item in library.account_list if item.identifier != identifier]
     library.account_count = max(1, len(library.account_list))
     for section in sections.values():
-        section.account_list = [item for item in section.account_list if item.public_account_identifier != identifier]
+        if hasattr(section, "instance_list"):
+            for instance in section.instance_list:
+                instance.normal.account_list = [
+                    item for item in instance.normal.account_list
+                    if item.public_account_identifier != identifier
+                ]
+            section.shared_runtime_records.pop(identifier, None)
+        else:
+            section.account_list = [
+                item for item in section.account_list
+                if item.public_account_identifier != identifier
+            ]
     _refresh_all_outer_schedulers(script_name, sections)
     _save(script_name, multi_account_shared_accounts=library, **sections)
     await _broadcast_shared_account_overviews(script_name, sections)
