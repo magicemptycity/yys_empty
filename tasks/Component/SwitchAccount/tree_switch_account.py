@@ -18,6 +18,12 @@ class TreeSwitchAccount(SwitchAccount):
     服务器、角色选择以及登录后的弹窗处理仍沿用原有切号流程。
     """
 
+    def switchAccount(self):
+        """A previous account scan can leave an expired or outdated image frame."""
+        # Only tree-based switching starts with a fresh frame; legacy OCR is unchanged.
+        self.device.screenshot()
+        return super().switchAccount()
+
     def _netease_account_ui(self) -> NeteaseAccountUi:
         return NeteaseAccountUi(self.device)
 

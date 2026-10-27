@@ -254,10 +254,17 @@ class NeteaseAccountUi:
                 )
                 if not inside_list:
                     candidates.append(node)
-            if len(candidates) != 1:
-                logger.warning("无法定位账号列表标题，不能重新展开账号列表")
-                return False
-            self._click_bounds(self._bounds(candidates[0]), "网易账号列表收起")
+            if len(candidates) == 1:
+                self._click_bounds(self._bounds(candidates[0]), "网易账号列表收起")
+            else:
+                # 弹出列表有时不暴露独立的标题控件。只在列表确实展开时
+                # 退回一次关闭 PopupWindow；不猜测坐标、更不点击账号。
+                logger.warning("无法定位账号列表标题，尝试返回关闭列表后重新展开")
+                try:
+                    self.device.u2.press("back")
+                except Exception as exc:
+                    logger.warning("关闭网易账号列表失败：%s", exc)
+                    return False
             time.sleep(max(1.0, self.settle_seconds))
 
         root = self.dump()
