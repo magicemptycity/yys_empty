@@ -636,6 +636,11 @@ async def update_script_arguments(script_name: str, task: str, updates: list[Scr
     def apply(source):
         source = dict(source or {})
         task_data = source.get(task_key)
+        if task_data is None and task_key == "multi_account_repeat_new_collection":
+            # Older configs predate this task. Materialize only the new collection
+            # when it is first edited; do not silently create unknown tasks.
+            task_data = getattr(ConfigModel(), task_key).model_dump()
+            source[task_key] = task_data
         if not isinstance(task_data, dict):
             raise HTTPException(status_code=404, detail="Task not found")
         changed_scheduler_fields = set()
