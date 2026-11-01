@@ -86,6 +86,29 @@ page_main.add_enter_success_hooks(
     RestartAssets.I_RETURN_CHESS_CANCEL,
 )
 
+# 关联手机提示和手机绑定表单是独立遮挡页，不作为庭院识别标志。
+# 只声明离开弹窗的路径，不让正常导航主动进入绑定页面。
+page_bind_phone_prompt = Page(
+    RestartAssets.I_LOGIN_LOGIN_GOTO_BIND_PHONE,
+    category="global",
+    priority=95,
+)
+page_bind_phone_form = Page(
+    RestartAssets.I_LOGIN_LOGIN_CANCEL_BIND_PHONE,
+    category="global",
+    priority=95,
+)
+page_bind_phone_prompt.connect(
+    page_bind_phone_form,
+    RestartAssets.I_LOGIN_LOGIN_GOTO_BIND_PHONE,
+    key="page_bind_phone_prompt->page_bind_phone_form",
+)
+page_bind_phone_form.connect(
+    page_main,
+    RestartAssets.I_LOGIN_LOGIN_CANCEL_BIND_PHONE,
+    key="page_bind_phone_form->page_main",
+)
+
 # 闲庭仍会命中庭院主页标志，因此使用更高优先级先识别闲庭，再点击左上角返回庭院。
 page_relax = Page(
     all_of(GameUiAssets.I_CHECK_MAIN, GameUiAssets.I_BACK_BROWN),
