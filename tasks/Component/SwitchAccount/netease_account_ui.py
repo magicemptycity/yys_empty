@@ -159,7 +159,7 @@ class NeteaseAccountUi:
         list_node = list_nodes[0]
         entries: list[AccountUiEntry] = []
         for resource_id in self.ACCOUNT_TEXT_IDS:
-            for text_node in list_node.xpath(self._resource_xpath(resource_id)):
+            for text_node in list_node.xpath("." + self._resource_xpath(resource_id)):
                 account = text_node.attrib.get("text", "").strip()
                 if not account:
                     continue
@@ -167,7 +167,14 @@ class NeteaseAccountUi:
                     (node for node in text_node.iterancestors() if node.attrib.get("clickable") == "true"),
                     text_node,
                 )
-                entries.append(AccountUiEntry(account, self._bounds(clickable)))
+                if (text_node.attrib.get("enabled") == "false"
+                        or text_node.attrib.get("visible-to-user") == "false"):
+                    continue
+                left, top, right, bottom = self._bounds(clickable)
+                ll, lt, lr, lb = self._bounds(list_node)
+                bounds = (max(left, ll), max(top, lt), min(right, lr), min(bottom, lb))
+                if bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                    entries.append(AccountUiEntry(account, bounds))
         return entries
 
     def _open_list(self, root) -> bool:
@@ -211,30 +218,66 @@ class NeteaseAccountUi:
         time.sleep(self.settle_seconds)
         return True
 
+    def _list_signature(self, root):
+        # 同时比较账号和位置：账号名称相同，不代表列表已经停止惯性滚动。
+        return tuple((self.normalize_account(e.account), e.bounds)
+                     for e in self._account_entries(root))
+
+    def _wait_list_stable(self, root):
+        previous = self._list_signature(root)
+        unchanged = 0
+        for _ in range(12):
+            time.sleep(max(0.2, self.settle_seconds))
+            root = self.dump()
+            signature = self._list_signature(root)
+            if not signature:
+                return root
+            unchanged = unchanged + 1 if signature == previous else 0
+            if unchanged >= 2:
+                return root
+            previous = signature
+        raise AccountUiUnavailable("账号列表持续移动，无法安全点击目标账号")
+
     def _select_visible(self, root, target: str, matcher) -> bool:
-        for entry in self._account_entries(root):
-            if not matcher(entry.account):
-                continue
+        if not any(matcher(e.account) for e in self._account_entries(root)):
+            return False
+        # 列表惯性滚动期间，点击可能只会停止滚动，并未选中账号。
+        # 等列表停稳后重新定位目标行，原地重试，不要立即滑走。
+        for attempt in range(3):
+            root = self._wait_list_stable(root)
+            current = self.current_account(root)
+            if current is not None:
+                return bool(matcher(current))
+            entry = next((e for e in self._account_entries(root) if matcher(e.account)), None)
+            if entry is None:
+                return False
             self._click_bounds(entry.bounds, "网易账号选择")
             for _ in range(4):
                 time.sleep(self.settle_seconds)
-                if matcher(self.current_account()):
+                root = self.dump()
+                if matcher(self.current_account(root)):
                     return True
-            return False
-        return False
+            if not self._nodes(root, self.ACCOUNT_LIST_ID):
+                return False
+            logger.warning("目标账号点击后尚未选中，第 %s/3 次确认", attempt + 1)
+        raise AccountUiUnavailable("已找到目标账号，但三次点击后仍未确认选中")
 
     def _scan_to_edge(self, target: str, matcher, *, toward_start: bool) -> bool:
-        """沿一个方向扫描到边界，账号序列不再变化时结束。"""
-        previous: tuple[str, ...] | None = None
+        """列表停稳后逐行扫描，仅在确认到达边界时结束，避免惯性滚动时误判。"""
+        previous = None
         for _ in range(self.max_scrolls):
-            root = self.dump()
+            root = self._wait_list_stable(self.dump())
+            if matcher(self.current_account(root)):
+                return True
             entries = self._account_entries(root)
-            signature = tuple(self.normalize_account(entry.account) for entry in entries)
-            if signature == previous or not entries:
+            signature = self._list_signature(root)
+            if not entries:
                 return False
-            previous = signature
             if self._select_visible(root, target, matcher):
                 return True
+            if signature == previous or (not toward_start and self._at_list_bottom(root)):
+                return False
+            previous = signature
             if not self._scroll(root, toward_start=toward_start):
                 return False
         return False
@@ -257,14 +300,17 @@ class NeteaseAccountUi:
             if len(candidates) == 1:
                 self._click_bounds(self._bounds(candidates[0]), "网易账号列表收起")
             else:
-                # 弹出列表有时不暴露独立的标题控件。只在列表确实展开时
-                # 退回一次关闭 PopupWindow；不猜测坐标、更不点击账号。
-                logger.warning("无法定位账号列表标题，尝试返回关闭列表后重新展开")
-                try:
-                    self.device.u2.press("back")
-                except Exception as exc:
-                    logger.warning("关闭网易账号列表失败：%s", exc)
+                # 当前版本的登录组件按返回键会关闭整个登录窗口。
+                # 仅点击控件树确认的下拉列表上方窗口区域来收起列表，
+                # 不使用猜测的游戏画面坐标。
+                contents = self._nodes(root, "netease_mpay__activity_content")
+                if len(contents) != 1:
                     return False
+                left, top, right, bottom = self._bounds(contents[0])
+                ll, lt, lr, lb = self._bounds(list_nodes[0])
+                if lt - top < 20 or not (left <= ll < lr <= right):
+                    return False
+                self._click_bounds((ll, top, lr, lt), "网易账号列表收起")
             time.sleep(max(1.0, self.settle_seconds))
 
         root = self.dump()
