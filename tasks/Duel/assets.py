@@ -15,20 +15,16 @@ class DuelAssets:
 	C_D_BATTLE_DATA = RuleClick(roi_front=(584,279,100,100), roi_back=(584,279,100,100), name="d_battle_data")
 	# 点击第五手上式神位置，获得式神名称 
 	C_DUEL_CLICK_5 = RuleClick(roi_front=(105,23,52,47), roi_back=(105,23,52,47), name="duel_click_5")
-
-
-	# 战斗结算上面随机区域
+	# 战斗结算上面随机区域 
 	C_RESULT_RANDOM_TOP = RuleClick(roi_front=(100,50,1080,275), roi_back=(100,50,1080,275), name="result_random_top")
-	# 战斗结算下面随机区域
+	# 战斗结算下面随机区域 
 	C_RESULT_RANDOM_BOTTOM = RuleClick(roi_front=(100,615,995,90), roi_back=(100,615,995,90), name="result_random_bottom")
-	# 战斗结算中间随机区域
+	# 战斗结算中间随机区域 
 	C_RESULT_RANDOM_CENTER = RuleClick(roi_front=(100,50,1080,490), roi_back=(100,50,1080,490), name="result_random_center")
-	# 战斗结算左边随机区域
+	# 战斗结算左边随机区域 
 	C_RESULT_RANDOM_LEFT = RuleClick(roi_front=(15,15,85,690), roi_back=(15,15,85,690), name="result_random_left")
-	# 战斗结算右边随机区域
+	# 战斗结算右边随机区域 
 	C_RESULT_RANDOM_RIGHT = RuleClick(roi_front=(1180,50,85,490), roi_back=(1180,50,85,490), name="result_random_right")
-
-
 
 
 	# Image Rule Assets
@@ -75,7 +71,11 @@ class DuelAssets:
 	# 胜利分享 
 	I_D_WIN_SHARE = RuleImage(roi_front=(1123,608,82,73), roi_back=(1123,608,82,73), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/d_win_share.png")
 	# 小白弹窗 
-	I_WHITE_DOG = RuleImage(roi_front=(388,327,70,62), roi_back=(308,211,235,292), threshold=0.7, method="Template matching", file="./tasks/Duel/duel/duel_white_dog.png")
+	I_WHITE_DOG = RuleImage(roi_front=(388,327,70,62), roi_back=(227,113,387,503), threshold=0.7, method="Template matching", file="./tasks/Duel/duel/duel_white_dog.png")
+	# 小白弹窗1 
+	I_WHITE_DOG1 = RuleImage(roi_front=(474,237,70,62), roi_back=(227,113,387,503), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_white_dog1.png")
+	# 小白1的开心收下 
+	I_HAPPY_ACCEPT = RuleImage(roi_front=(773,502,125,38), roi_back=(626,451,447,127), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_happy_accept.png")
 
 
 	# Ocr Rule Assets

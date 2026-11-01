@@ -192,9 +192,27 @@
     "itemName": "white_dog",
     "imageName": "duel_white_dog.png",
     "roiFront": "388,327,70,62",
-    "roiBack": "308,211,235,292",
+    "roiBack": "227,113,387,503",
     "method": "Template matching",
     "threshold": 0.7,
     "description": "小白弹窗"
+  },
+  {
+    "itemName": "white_dog1",
+    "imageName": "duel_white_dog1.png",
+    "roiFront": "474,237,70,62",
+    "roiBack": "227,113,387,503",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "小白弹窗1"
+  },
+  {
+    "itemName": "happy_accept",
+    "imageName": "duel_happy_accept.png",
+    "roiFront": "773,502,125,38",
+    "roiBack": "626,451,447,127",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "小白1的开心收下"
   }
 ]

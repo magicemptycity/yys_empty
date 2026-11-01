@@ -341,6 +341,10 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if self.appear(self.I_WHITE_DOG):
                 self.click(random_click(ltrb=(True, False, False, False)), interval=1.5)
                 continue
+            if self.appear(self.I_WHITE_DOG1):
+                self.click(random_click(ltrb=(True, False, False, False)), interval=1.5)
+                self.ui_click_until_disappear(self.I_HAPPY_ACCEPT, interval=1.5)
+                continue
             if self.appear_then_click(self.I_D_TEAM, interval=1):
                 continue
             if self.appear_then_click(self.I_UI_CONFIRM, interval=0.6):
