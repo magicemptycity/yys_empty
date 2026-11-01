@@ -11,8 +11,8 @@
   {
     "itemName": "u_confirm_alternate",
     "imageName": "rs_u_confirm_alternate.png",
-    "roiFront": "692,407,134,47",
-    "roiBack": "692,407,134,47",
+    "roiFront": "686,418,135,41",
+    "roiBack": "663,405,181,69",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "候补式神确认"

@@ -8,8 +8,9 @@ from datetime import timedelta, datetime
 
 from module.base.timer import Timer
 from module.atom.image_grid import ImageGrid
+from module.atom.click import RuleClick
 from module.logger import logger
-from module.exception import TaskEnd, GamePageUnknownError, GameStuckError
+from module.exception import TaskEnd, GamePageUnknownError, GameStuckError, GameTooManyClickError
 
 from tasks.GameUi.game_ui import GameUi
 from tasks.KekkaiUtilize.page import page_guild_realm, page_guild_realm_utilize, page_guild_realm_growth, \
@@ -567,6 +568,27 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         self.utilize_terminal_failure = True
         return False
 
+    def _cancel_utilize_confirmation(self):
+        """失败后有界关闭寄养确认，避免带着弹窗退出好友结界。"""
+        cancel_small = RuleClick(
+            roi_front=(490, 525, 100, 38), roi_back=(490, 525, 100, 38),
+            name='utilize_cancel_confirm',
+        )
+        cancel_alternate = RuleClick(
+            roi_front=(455, 420, 140, 38), roi_back=(455, 420, 140, 38),
+            name='utilize_cancel_alternate',
+        )
+        for _ in range(3):
+            self.screenshot()
+            # 若仍有候补弹窗，只取消顶层，不继续确认寄养。
+            if self.appear(self.I_U_CONFIRM_ALTERNATE):
+                self.click(cancel_alternate)
+            elif self.appear(self.I_U_CONFIRM_SMALL):
+                self.click(cancel_small)
+            else:
+                return
+            time.sleep(0.5)
+
     def run_utilize(self, friend: SelectFriendList = SelectFriendList.SAME_SERVER,
                     shikigami_class: ShikigamiClass = ShikigamiClass.N,
                     shikigami_order: int = 7):
@@ -659,11 +681,22 @@ class ScriptTask(GameUi, ReplaceShikigami, KekkaiUtilizeAssets):
         try:
             # 切换式神的类型
             self.switch_shikigami_class(shikigami_class)
-            # 上式神
-            self.set_shikigami(shikigami_order, stop_image)
-        except (GamePageUnknownError, GameStuckError) as error:
+            # 每次进入目标结界只抽取一次确认上限，过程中不重新随机。
+            max_confirm_attempts = random.randint(2, 4)
+            logger.info(f'本次寄养最多确认{max_confirm_attempts}次')
+            placed = self.set_shikigami(
+                shikigami_order, stop_image, max_confirm_attempts=max_confirm_attempts,
+            )
+        except (GamePageUnknownError, GameStuckError, GameTooManyClickError) as error:
+            self._cancel_utilize_confirmation()
             return self._record_utilize_failure(
                 f'式神寄养失败: {type(error).__name__}',
+                entered_realm=True,
+            )
+        if not placed:
+            self._cancel_utilize_confirmation()
+            return self._record_utilize_failure(
+                f'连续{max_confirm_attempts}次确认寄养仍未成功，目标结界可能已被占用',
                 entered_realm=True,
             )
         self.utilize_failed_count = 0
