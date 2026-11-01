@@ -155,7 +155,7 @@
   {
     "itemName": "cancel_battle",
     "imageName": "login_cancel_battle.png",
-    "roiFront": "471,395,129,55",
+    "roiFront": "462,420,128,38",
     "roiBack": "367,227,545,296",
     "method": "Template matching",
     "threshold": 0.8,

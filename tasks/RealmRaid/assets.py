@@ -40,7 +40,7 @@ class RealmRaidAssets:
 	# 打完个后出现的领取奖励 
 	I_SOUL_RAID = RuleImage(roi_front=(577,502,100,100), roi_back=(577,502,100,100), threshold=0.8, method="Template matching", file="./tasks/RealmRaid/res/res_soul_raid.png")
 	# 刷新确认/再战确认 
-	I_FRESH_ENSURE = RuleImage(roi_front=(672,403,173,59), roi_back=(672,403,173,59), threshold=0.8, method="Template matching", file="./tasks/RealmRaid/res/res_fresh_ensure.png")
+	I_FRESH_ENSURE = RuleImage(roi_front=(667,410,173,59), roi_back=(667,410,173,59), threshold=0.8, method="Template matching", file="./tasks/RealmRaid/res/res_fresh_ensure.png")
 	# 没有锁图片，适配呱太入侵 
 	I_UNLOCK_2 = RuleImage(roi_front=(1002,643,30,41), roi_back=(1002,643,30,41), threshold=0.9, method="Template matching", file="./tasks/RealmRaid/res/res_unlock_2.png")
 	# 以锁图片，适配呱太 
@@ -117,19 +117,19 @@ class RealmRaidAssets:
 
 
 	# Click Rule Assets
-	# 中间随机点击
+	# 中间随机点击 
 	C_RESULT_WIN_RANDOM_CENTER = RuleClick(roi_front=(30,108,1205,515), roi_back=(30,108,1205,515), name="result_win_random_center")
-	# 右下随机点击
+	# 右下随机点击 
 	C_RESULT_WIN_RANDOM_RIGHT = RuleClick(roi_front=(686,272,580,433), roi_back=(686,272,580,433), name="result_win_random_right")
-	# 左边随机点
+	# 左边随机点 
 	C_REWARD_RANDOM_LEFT = RuleClick(roi_front=(40,45,185,584), roi_back=(40,45,185,584), name="reward_random_left")
-	# 右边随机点
+	# 右边随机点 
 	C_REWARD_RANDOM_RIGHT = RuleClick(roi_front=(1060,108,197,592), roi_back=(1060,108,197,592), name="reward_random_right")
-	# 下面随机点
+	# 下面随机点 
 	C_REWARD_RANDOM_DOWN = RuleClick(roi_front=(36,304,1226,321), roi_back=(36,304,1226,321), name="reward_random_down")
-	# 下面随机点2
+	# 下面随机点2 
 	C_REWARD_RANDOM_BOTTOM = RuleClick(roi_front=(600,600,660,100), roi_back=(600,600,660,100), name="reward_random_bottom")
-	# 上面随机点
+	# 上面随机点 
 	C_REWARD_RANDOM_TOP = RuleClick(roi_front=(29,111,1215,51), roi_back=(29,111,1215,51), name="reward_random_top")
 
 
