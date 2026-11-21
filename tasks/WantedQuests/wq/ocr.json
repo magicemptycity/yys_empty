@@ -1,8 +1,8 @@
 [
   {
     "itemName": "wq_number",
-    "roiFront": "523,12,97,41",
-    "roiBack": "523,12,97,41",
+    "roiFront": "523,12,110,41",
+    "roiBack": "523,12,110,41",
     "mode": "Digit",
     "method": "Default",
     "keyword": "",
@@ -10,8 +10,8 @@
   },
   {
     "itemName": "wq_type_1",
-    "roiFront": "648,284,55,36",
-    "roiBack": "648,284,55,36",
+    "roiFront": "648,284,50,36",
+    "roiBack": "648,284,50,36",
     "mode": "Single",
     "method": "Default",
     "keyword": "",
@@ -46,8 +46,8 @@
   },
   {
     "itemName": "wq_info_1",
-    "roiFront": "632,278,309,45",
-    "roiBack": "632,278,309,45",
+    "roiFront": "630,278,400,45",
+    "roiBack": "630,278,400,45",
     "mode": "Single",
     "method": "Default",
     "keyword": "",
@@ -55,8 +55,8 @@
   },
   {
     "itemName": "wq_info_2",
-    "roiFront": "633,356,298,41",
-    "roiBack": "633,356,298,41",
+    "roiFront": "630,355,400,45",
+    "roiBack": "630,355,400,45",
     "mode": "Single",
     "method": "Default",
     "keyword": "",
@@ -64,8 +64,8 @@
   },
   {
     "itemName": "wq_info_3",
-    "roiFront": "632,430,305,44",
-    "roiBack": "632,430,305,44",
+    "roiFront": "630,430,400,45",
+    "roiBack": "630,430,400,45",
     "mode": "Single",
     "method": "Default",
     "keyword": "",
@@ -73,8 +73,8 @@
   },
   {
     "itemName": "wq_info_4",
-    "roiFront": "633,506,315,44",
-    "roiBack": "633,506,315,44",
+    "roiFront": "630,505,400,45",
+    "roiBack": "630,505,400,45",
     "mode": "Single",
     "method": "Default",
     "keyword": "",
