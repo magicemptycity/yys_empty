@@ -312,8 +312,8 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         :return: WQInfo
         """
         wq_type_txt = type_rule.ocr(self.device.image)
-        # 适配老逻辑, 将式神碎片改为挑战
-        wq_type_txt = '挑战' if wq_type_txt == '式神' else wq_type_txt
+        # 类型 OCR 只要包含“式神”就视为挑战，兼容“式神碎片”和尾部误识别。
+        wq_type_txt = '挑战' if '式神' in wq_type_txt else wq_type_txt
         if wq_type_txt == '' or not WQType.contains(wq_type_txt):
             logger.warning(f'Unknown wq type: {wq_type_txt}')
             return None
