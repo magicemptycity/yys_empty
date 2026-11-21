@@ -107,6 +107,13 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
             if click_interval_timer.reached_and_reset():
                 clicked = False
             self.screenshot()
+            # 候补弹窗优先处理，避免点到底层寄养确认，也避免空位被遮挡后提前退出。
+            if self.appear(self.I_U_CONFIRM_ALTERNATE):
+                if self.appear(self.I_U_CIRCLE_ALTERNATE):
+                    self.appear_then_click(self.I_U_CIRCLE_ALTERNATE, interval=2.5)
+                else:
+                    self.appear_then_click(self.I_U_CONFIRM_ALTERNATE, interval=1.5)
+                continue
             if max_confirm_attempts is not None and confirm_attempts:
                 # 确认后留出服务端响应时间，避免把短暂动画当成再次选式神的机会。
                 if not confirm_wait_timer.reached():
@@ -119,7 +126,8 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                         '目标结界可能已被其他玩家占用，停止重复选式神'
                     )
                     return False
-            if self.appear_then_click(self.I_U_CONFIRM_SMALL, interval=0.5):
+            if self.appear(self.I_U_CONFIRM_SMALL) and not self.appear(self.I_U_CONFIRM_ALTERNATE):
+                self.appear_then_click(self.I_U_CONFIRM_SMALL, interval=0.5)
                 confirm_attempts += 1
                 confirm_wait_timer.reset()
                 clicked = False  # 点击了确认, 恢复选式神的操作
@@ -134,9 +142,6 @@ class ReplaceShikigami(BaseTask, ReplaceShikigamiAssets):
                 # 有的时候第七个格子被占用到寄养上去了
                 # 导致一直无法选上
                 clicked = True
-                continue
-            if self.appear_then_click(self.I_U_CIRCLE_ALTERNATE, interval=2.5):
-                self.appear_then_click(self.I_U_CONFIRM_ALTERNATE, interval=1.5)
                 continue
         logger.info('Set shikigami: %d' % shikigami_order)
         return True
