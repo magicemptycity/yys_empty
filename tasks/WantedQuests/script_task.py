@@ -223,6 +223,21 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         self.ui_click_until_smt_disappear(self.C_WQ_TRACE_ONE_CLOSE, stop=self.I_WQ_TRACE_ONE_CHECK_OPENED,
                                           interval=1.5)
 
+    def _wait_wq_goto(self) -> bool:
+        """最多等待3秒，确认同一个“前往”按钮在连续两张新截图中出现。"""
+        goto_buttons = (self.I_GOTO_1, self.I_GOTO_2, self.I_GOTO_3, self.I_GOTO_4)
+        timeout_timer = Timer(3).start()
+        previous_buttons = set()
+        while not timeout_timer.reached():
+            self.screenshot()
+            current_buttons = {button for button in goto_buttons if self.appear(button)}
+            if timeout_timer.reached():
+                break
+            if previous_buttons & current_buttons:
+                return True
+            previous_buttons = current_buttons
+        return False
+
     def execute_mission(self, num_want: int):
         """
         执行对应的悬赏任务
@@ -230,23 +245,19 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         :return:
         """
         logger.hr('Start wanted quests')
-        if not self.appear(self.I_GOTO_1):
-            # 如果没有出现 '前往'按钮， 那就是这个可能是神秘任务但是没有解锁
-            logger.info('This is a secret mission but not unlock')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
-            return False
+        if not self._wait_wq_goto():
+            logger.warning('Wanted quest goto buttons not stable within 3s, skip')
+            return self._skip_mission()
         # 跳过不想打的
         monster_name = self.O_WQ_MONSTER_TYPE.detect_text(self.device.image)
         if monster_name in self.unwanted_boss_name_list:
             logger.warning(f'unwanted {monster_name}')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
-            return False
+            return self._skip_mission()
         # 获取排序后的悬赏信息列表
         ordered_wq_infos = self.get_ordered_wq_infos(num_want)
         if not ordered_wq_infos:
             logger.info('Current wanted quest skipped all, cancel it')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
-            return False
+            return self._skip_mission()
         wq_call_dict: dict[WQType, Callable] = {
             WQType.CHALLENGE: self.challenge,
             WQType.EXPLORE: self.explore,
@@ -256,8 +267,7 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         wq_info = self.get_need_exec_wq(ordered_wq_infos)
         if not wq_info:
             logger.info('Current wanted quests can not be executed')
-            self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
-            return False
+            return self._skip_mission()
         try:
             logger.info(f'Choose wq: {wq_info}')
             wq_call_dict[wq_info.type](wq_info.goto_btn, wq_info.do_num)
@@ -266,6 +276,13 @@ class ScriptTask(WQExplore, SecretScriptTask, WantedQuestsAssets):
         finally:
             self.wq_executed_set.add(wq_info)
             self.goto_page(page_exploration)
+
+    def _skip_mission(self) -> bool:
+        """取消追踪并关闭详情，回到探索页后再查找下一条悬赏。"""
+        self.ui_click(self.I_TRACE_TRUE, self.I_TRACE_FALSE)
+        self.ui_click_until_disappear(self.I_UI_BACK_RED)
+        self.goto_page(page_exploration)
+        return False
 
     def get_need_exec_wq(self, ordered_wq_infos: List[WQInfo]) -> Optional[WQInfo]:
         """获取需要执行的悬赏(按优先级选择最靠前的)"""
