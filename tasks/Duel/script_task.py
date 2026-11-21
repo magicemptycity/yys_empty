@@ -17,7 +17,7 @@ from tasks.GameUi.page import page_duel, page_onmyodo, random_click
 from tasks.Duel.config import Duel
 from tasks.Duel.assets import DuelAssets
 from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
-from tasks.GameUi.page import page_main, page_shikigami_records
+from tasks.GameUi.page import page_main, page_shikigami_records, page_town
 
 """ 斗技 """
 
@@ -153,18 +153,25 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
     def enter_battle(self):
         """点击开始战斗(一直到出现战斗准备界面)"""
         logger.hr('duel battle matching')
-        while not self.is_in_battle_prepare():
+        while True:
             self.screenshot()
             # 对方在进入准备页前退出，直接出现胜利结算。
             if self.is_battle_end():
                 logger.info("Duel ended before battle preparation")
                 return True
-            # 战斗按钮
-            self.ui_click_until_disappear(self.I_D_BATTLE, interval=1.2)
-            self.ui_click_until_disappear(self.I_D_BATTLE2, interval=1.2)
-            # 战斗带保护的按钮
-            self.ui_click_until_disappear(self.I_D_BATTLE_PROTECT, interval=1.2)
-        return False
+            if self.is_in_battle_prepare() or self.is_in_real_battle(is_screenshot=False):
+                return False
+            # 只在连续两帧确认已回到庭院或町中后导航，避免打断正常匹配。
+            if self.confirm_page(page_main) or self.confirm_page(page_town):
+                logger.warning('Duel matching left duel page, return to duel')
+                self.goto_page(page_duel)
+                continue
+            # 每轮最多点击一次，让准备、战斗和结算状态及时接管。
+            if self.appear_then_click(self.I_D_BATTLE, interval=1.2):
+                continue
+            if self.appear_then_click(self.I_D_BATTLE2, interval=1.2):
+                continue
+            self.appear_then_click(self.I_D_BATTLE_PROTECT, interval=1.2)
 
     def battle_prepare(self):
         """选式神准备斗技阶段"""
@@ -174,7 +181,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if not_in_prepare_cnt >= max_retry:  # max_retry次识别不到任何阶段元素(准备,战斗,结算), 退出
                 break
             self.screenshot()
-            if self.is_battle_end() or self.is_in_real_battle():  # 战斗已经结束或已经开始战斗
+            if self.is_battle_end() or self.is_in_real_battle(is_screenshot=False):  # 战斗已经结束或已经开始战斗
                 break
             if not self.is_in_battle_prepare():  # 一般不会出现这种情况(不在准备,战斗,结束界面), 但是处理一下
                 not_in_prepare_cnt += 1
@@ -250,13 +257,13 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
                 self.duel_exit_battle()
                 continue
             if ret is None and not battle_operated:  # 进行战斗前的操作
-                if self.is_battle_end():
+                # 切自动期间也必须逐帧检查结算，不能阻塞在 ui_click 内等待。
+                if self.appear(self.O_BATTLE_AUTO):
+                    self.green_mark(self.conf.duel_config.green_enable, self.conf.duel_config.green_mark)
+                    battle_operated = True
+                    self.reset_device('BATTLE_STATUS_S')
+                elif self.ocr_appear_click(self.O_BATTLE_HAND, interval=0.8):
                     continue
-                self.ui_click(self.O_BATTLE_HAND, self.O_BATTLE_AUTO, interval=0.8)
-                self.green_mark(self.conf.duel_config.green_enable, self.conf.duel_config.green_mark)
-                battle_operated = True
-                self.reset_device('BATTLE_STATUS_S')
-                continue
             if not ret_timer.started() and battle_timeout_timer.reached_and_reset():
                 battle_timeout_cnt += 1
                 self.reset_device('BATTLE_STATUS_S')
