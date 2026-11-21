@@ -62,7 +62,7 @@ class SixRealmsCommon(GameUi, SixRealmsAssets):
             self.screenshot()
             if self.get_current_page() == store_page:
                 return True
-            if self.appear_then_click(self.I_UI_CONFIRM):
+            if self.appear_then_click(self.I_UI_CONFIRM_2):
                 continue
             if self.appear_then_click(store_rule, interval=1.5):
                 continue

@@ -38,7 +38,7 @@ class SixRealmsAssets:
 	# 主选式神确定 
 	I_MSTART_CONFIRM = RuleImage(roi_front=(1136,575,100,100), roi_back=(1080,548,182,150), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mstart_confirm.png")
 	# description 
-	I_MSTART_UNCHECK = RuleImage(roi_front=(543,340,38,40), roi_back=(543,340,38,40), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mstart_uncheck.png")
+	I_MSTART_UNCHECK = RuleImage(roi_front=(544,345,34,34), roi_back=(543,340,38,40), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mstart_uncheck.png")
 	# description 
 	I_MSTART_CHECK = RuleImage(roi_front=(542,340,39,41), roi_back=(542,340,39,41), threshold=0.8, method="Template matching", file="./tasks/SixRealms/moon_sea/ms/ms_mstart_check.png")
 	#  

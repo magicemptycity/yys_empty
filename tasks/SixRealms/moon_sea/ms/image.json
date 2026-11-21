@@ -38,7 +38,7 @@
   {
     "itemName": "mstart_uncheck",
     "imageName": "ms_mstart_uncheck.png",
-    "roiFront": "543,340,38,40",
+    "roiFront": "544,345,34,34",
     "roiBack": "543,340,38,40",
     "method": "Template matching",
     "threshold": 0.8,
