@@ -5,6 +5,7 @@ from time import sleep
 from enum import Enum
 from module.logger import logger
 from module.exception import TaskEnd
+from module.execution.schedule_capture import capture_enabled
 from module.base.timer import Timer
 from datetime import timedelta, datetime
 
@@ -122,8 +123,9 @@ class ScriptTask(GameUi, MemoryScrollsAssets):
             if con.auto_close_exploration:
                 # 自动关闭探索任务
                 logger.info('Auto close exploration task after Memory Scrolls completion')
-                self.config.exploration.scheduler.enable = False
-                self.config.save()
+                if not capture_enabled(self.config, 'Exploration', False):
+                    self.config.exploration.scheduler.enable = False
+                    self.config.save()
                 # next_run=datetime.now() + timedelta(days=1)
                 # self.set_next_run(task='Exploration', success=False, finish=False, target=next_run)
         # 返回绘卷主界面

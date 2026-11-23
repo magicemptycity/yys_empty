@@ -516,10 +516,13 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         :param force_call:
         :return:
         """
+        from module.execution.schedule_capture import capture_schedule
         task = convert_to_underscore(task)
         if self.model.deep_get(self.model, keys=f'{task}.scheduler.next_run') is None:
             raise ScriptError(f"Task to call: `{task}` does not exist in user config")
 
+        if capture_schedule(self, task, target=datetime.now().replace(microsecond=0), server=False):
+            return True
         task_enable = self.model.deep_get(self.model, keys=f'{task}.scheduler.enable')
         if force_call or task_enable:
             logger.info(f"Task call: {task}")
@@ -544,6 +547,9 @@ class Config(ConfigState, ConfigManual, ConfigWatcher, ConfigMenu):
         :param finish: 是完成任务后的时间为基准还是开始任务的时间为基准
         :return:
         """
+        from module.execution.schedule_capture import capture_schedule
+        if capture_schedule(self, task, start_time=start_time, success=success, server=server, target=target):
+            return
         # 加载配置文件
         self.reload()
         # 任务预处理

@@ -158,7 +158,7 @@ class AccountSchedulerTaskBase(MultiAccountRepeatNewBase):
                 task_obj.run()
                 success = True
             except TaskEnd:
-                success = getattr(task_obj, "_task_success", True)
+                success = True
             except RequestHumanTakeover:
                 raise
             except Exception as exc:

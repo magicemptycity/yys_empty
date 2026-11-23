@@ -7,8 +7,16 @@ from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import Any, ClassVar
 
-from module.exception import RequestHumanTakeover, TaskEnd
+from module.exception import (
+    GameNotRunningError,
+    GamePageUnknownError,
+    GameStuckError,
+    GameTooManyClickError,
+    RequestHumanTakeover,
+    TaskEnd,
+)
 from module.logger import logger
+from module.config.account_task_schedule import AccountTaskScheduleMixin
 from pydantic import BaseModel, ValidationError
 from module.config.multi_account_task_progress import (
     set_task_local_status, settle_completed_group, normal_completed_today,
@@ -36,7 +44,7 @@ from tasks.MultiAccountTaskOrchestration.config import (
 )
 
 
-class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets, SwitchAccountAssets):
+class ScriptTask(AccountTaskScheduleMixin, MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets, SwitchAccountAssets):
     """多账号任务编排的统一执行器。"""
 
     task_name: ClassVar[str] = "MultiAccountTaskOrchestration"
@@ -355,6 +363,7 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
         due_plan.sort(key=lambda item: item[:4])
         failed_account_ids: set[int] = set()
         current_account_id: int | None = None
+        overall_failed = False
         for _, _, account_index, _, item_type, account_info, item, task_names in due_plan:
             self._yield_to_higher_priority_task()
             account_id = id(account_info)
@@ -367,6 +376,7 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
             if current_account_id != account_id:
                 self.current_account_info = account_info
                 if not self._switch_account(account_info):
+                    overall_failed = True
                     failed_account_ids.add(account_id)
                     current_account_id = None
                     continue
@@ -378,23 +388,30 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
                 payload["task_name"] = item.task_name
             self._publish_multi_account_overview(self.overview_kind, payload)
             if item_type == "group":
-                self._run_fixed_time_batch(account_info, item, task_names)
+                result = self._run_fixed_time_batch(account_info, item, task_names)
             else:
-                self._run_single_orchestration_task(account_info, item)
+                result = self._run_single_orchestration_task(account_info, item)
+            if result is False:
+                overall_failed = True
             self._publish_multi_account_overview(self.overview_kind, None)
         next_run = self._next_orchestration_item_run()
-        self.set_next_run(self.task_name, success=None, server=False, target=next_run) if next_run else self.set_next_run(self.task_name, success=True, server=False)
+        self.set_next_run(self.task_name, success=None, server=False, target=next_run) if next_run else self.set_next_run(self.task_name, success=not overall_failed, server=False)
         raise TaskEnd(self.task_name)
 
-    def _run_single_orchestration_task(self, account_info: MultiAccountRepeatNewAccount, entry: MultiAccountRepeatNewTask) -> bool:
+    def _run_single_orchestration_task(self, account_info: MultiAccountRepeatNewAccount, entry: MultiAccountRepeatNewTask) -> bool | None:
         scheduler = self._single_task_scheduler(entry)
-        if scheduler is None:
-            return False
+        if scheduler is None or not scheduler.enable or scheduler.next_run > datetime.now():
+            return None  # A previous task may have disabled/postponed an already planned item.
         set_task_local_status(entry, "running")
         self._save_repeat_config()
-        success = self._run_task_with_retry(account_info, entry.task_name, entry)
-        set_task_local_status(entry, "completed" if success else "failed")
-        scheduler.next_run = self._scheduler_next_run(scheduler, success=success)
+        success = self._run_task_with_retry(account_info, entry.task_name, entry, independent=True)
+        if success is None:
+            entry.status = "pending"
+        else:
+            set_task_local_status(entry, "completed" if success else "failed")
+        # Resolve again after execution so an in-task switch change is not overwritten.
+        scheduler = self._single_task_scheduler(entry)
+        scheduler.next_run = self._task_next_run if success is not False and self._task_next_run else self._scheduler_next_run(scheduler, success=bool(success))
         entry.private_config.setdefault("scheduler", {}).update(scheduler.model_dump(mode="json"))
         self._save_repeat_config()
         return success
@@ -629,12 +646,21 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
             ),
         )
 
+    def _tasks_for_link(self, account):
+        # Only existing independent single tasks; never ordinary lists or group members.
+        return [entry.task_name for entry in self._enabled_single_tasks(account)]
+
+    def _scheduler_for_link(self, account, task_name):
+        entry = self._schedule_entry(account, task_name)
+        return self._single_task_scheduler(entry) if entry is not None else None
+
     def _run_task_with_retry(
         self,
         account_info: MultiAccountRepeatNewAccount,
         task_name: str,
         task_entry: MultiAccountRepeatNewTask | MultiAccountRepeatNewFixedTimeBatchTask | None = None,
-    ) -> bool:
+        *, independent: bool = False,
+    ) -> bool | None:
         """执行单个任务；失败后重启游戏并最多重试三次。"""
         self.current_account_info = account_info
         last_exception: Exception | None = None
@@ -666,7 +692,11 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
             )
             # 内层任务保存运行状态时，仅合并写回自身配置，不能覆盖其他多账号功能。
             self.config._save_selected_fields = {convert_to_underscore(task_name)}
-            task_config_backup = self._apply_private_task_config(task_name, task_entry)
+            try:
+                task_config_backup = self._apply_private_task_config(task_name, task_entry)
+            except BaseException:
+                self.config._save_selected_fields = previous_save_fields
+                raise
             task_success = False
             try:
                 task_obj = self.create_task_object(
@@ -675,36 +705,26 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
                     device=self.device,
                     current_account_info=account_info,
                 )
-                task_obj.run()
-                task_success = True
-                return True
-            except TaskEnd:
-                task_success = getattr(task_obj, "_task_success", True)
-                if task_success:
-                    logger.info(
-                        "%s-%s 的任务 %s 执行结束",
-                        account_info.character,
-                        account_info.svr,
-                        task_name,
+                if independent:
+                    task_success = self._call_account_task(
+                        task_obj, task_name, account_info, check_due=attempt == 1,
                     )
-                    if getattr(task_obj, "_restart_before_next_task", False):
-                        logger.warning(
-                            "%s-%s 的任务 %s 已完成，但收尾环境未清理，重启游戏后执行下一项",
-                            account_info.character,
-                            account_info.svr,
-                            task_name,
-                        )
-                        self._restart_game()
+                    if task_success is None:
+                        return None
                 else:
-                    last_exception = RuntimeError(f"任务 {task_name} 返回失败状态")
-                    logger.warning(
-                        "%s-%s 的任务 %s 执行失败并结束，继续重试",
-                        account_info.character,
-                        account_info.svr,
-                        task_name,
-                    )
-                    continue
-                return True
+                    # Ordinary lists and group members keep their original callbacks.
+                    value = None
+                    try:
+                        value = task_obj.run()
+                    except TaskEnd:
+                        pass
+                    task_success = value is not False
+                if task_success:
+                    logger.info("%s-%s 的任务 %s 执行结束", account_info.character, account_info.svr, task_name)
+                    if getattr(task_obj, "_restart_before_next_task", False):
+                        self._restart_game()
+                    return True
+                last_exception = RuntimeError(f"任务 {task_name} 返回失败状态")
             except RequestHumanTakeover:
                 raise
             except Exception as exc:
@@ -720,10 +740,14 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
                     exc,
                 )
             finally:
-                if task_success or self._persist_partial_runtime_record():
-                    self._save_private_runtime_record(task_entry, task_config_backup)
-                self._restore_private_task_config(task_config_backup)
-                self.config._save_selected_fields = previous_save_fields
+                try:
+                    if task_success or self._persist_partial_runtime_record():
+                        self._save_private_runtime_record(task_entry, task_config_backup)
+                finally:
+                    try:
+                        self._restore_private_task_config(task_config_backup)
+                    finally:
+                        self.config._save_selected_fields = previous_save_fields
 
         task_display_name = self._task_display_name(task_name)
         logger.error(
@@ -884,6 +908,14 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatNewAssets,
                 account_info,
             ).switchAccount()
         except RequestHumanTakeover:
+            raise
+        except (
+            GameNotRunningError,
+            GamePageUnknownError,
+            GameStuckError,
+            GameTooManyClickError,
+        ):
+            # 切号环境异常交回原生 Restart 流程，不转换为失败并顺延当前账号。
             raise
         except Exception as exc:
             self._last_switch_error = exc

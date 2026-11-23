@@ -309,33 +309,18 @@ class ScriptTask(MultiAccountPriorityMixin, GameUi, MultiAccountRepeatAssets, Sw
                     device=self.device,
                     current_account_info=account_info,
                 )
-                task_obj.run()
-                return True
-            except TaskEnd:
-                task_success = getattr(task_obj, "_task_success", True)
-                if task_success:
-                    logger.info(
-                        "%s-%s 的任务 %s 执行结束",
-                        account_info.character,
-                        account_info.svr,
-                        task_name,
-                    )
+                value = None
+                try:
+                    value = task_obj.run()
+                except TaskEnd:
+                    pass
+                success = value is not False
+                if success:
+                    logger.info("%s-%s 的任务 %s 执行结束", account_info.character, account_info.svr, task_name)
                     if getattr(task_obj, "_restart_before_next_task", False):
-                        logger.warning(
-                            "%s-%s 的任务 %s 已完成，但收尾环境未清理，重启游戏后执行下一项",
-                            account_info.character,
-                            account_info.svr,
-                            task_name,
-                        )
                         self._restart_game()
-                else:
-                    logger.warning(
-                        "%s-%s 的任务 %s 执行失败并结束",
-                        account_info.character,
-                        account_info.svr,
-                        task_name,
-                    )
-                return task_success
+                    return True
+                last_exception = RuntimeError(f"任务 {task_name} 返回失败状态")
             except RequestHumanTakeover:
                 raise
             except Exception as exc:

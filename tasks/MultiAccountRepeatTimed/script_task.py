@@ -111,8 +111,11 @@ class ScriptTask(MultiAccountRepeatNewBase):
             set_task_local_status(entry, "running")
             self._save_repeat_config()
             success = self._run_timed_task(account, entry)
-            set_task_local_status(entry, "completed" if success else "failed")
-            if not success:
+            if success is None:
+                entry.status = "pending"
+            else:
+                set_task_local_status(entry, "completed" if success else "failed")
+            if success is False:
                 overall_failed = True
             # 每个账号任务结束后立即落盘，避免等待该账号其他任务结束，
             # 也避免外层调度器继续使用旧的 next_run 反复循环。状态保存
@@ -340,11 +343,20 @@ class ScriptTask(MultiAccountRepeatNewBase):
             scheduler, datetime.now(), success, server=True, target=None
         )
 
+    def _tasks_for_link(self, account):
+        return [entry.task_name for entry in account.task_list
+                if entry.task_name and getattr(self._entry_scheduler(entry.task_name, entry), 'enable', False)]
+
+    def _scheduler_for_link(self, account, task_name):
+        key = convert_to_underscore(task_name)
+        entry = next((item for item in account.task_list if convert_to_underscore(item.task_name) == key), None)
+        return self._entry_scheduler(task_name, entry) if entry is not None else None
+
     def _run_timed_task(
         self,
         account: MultiAccountRepeatTimedAccount,
         entry: MultiAccountRepeatTimedTask,
-    ) -> bool:
+    ) -> bool | None:
         """运行一项到期任务，并把配置型运行记录保存到该账号的任务项中。"""
         task_name = entry.task_name
         last_exception: Exception | None = None
@@ -364,43 +376,18 @@ class ScriptTask(MultiAccountRepeatNewBase):
                     current_account_info=account,
                 )
 
-                def capture(
-                    inner_task=None,
-                    finish=False,
-                    success=None,
-                    server=True,
-                    target=None,
-                    task=None,
-                    **kwargs,
-                ):
-                    # 不同任务有时使用位置参数，有时使用 task=；统一转换后再判断。
-                    requested_task = task if task is not None else inner_task
-                    if requested_task is not None and convert_to_underscore(str(requested_task)) != convert_to_underscore(task_name):
-                        return
-                    if target is not None:
-                        captured["next_run"] = target
-                        return
-                    interval_success = success is not False
-                    scheduler = getattr(
-                        getattr(self.config, task_key, None),
-                        "scheduler",
-                        None,
-                    )
-                    start = datetime.now() if finish else task_obj.start_time
-                    captured["next_run"] = self._next_run_from_scheduler(
-                        scheduler,
-                        start,
-                        interval_success,
-                        server=server,
-                        target=target,
-                    )
-
-                # 内层任务的 set_next_run 只更新当前账号当前任务，不改公共调度器。
-                task_obj.set_next_run = capture
-                task_obj.run()
-                task_success = True
-            except TaskEnd:
-                task_success = getattr(task_obj, "_task_success", True)
+                task_success = self._call_account_task(
+                    task_obj, task_name, account, check_due=attempt == 1,
+                    resolve_next=lambda start, success, server, target: self._next_run_from_scheduler(
+                        getattr(getattr(self.config, task_key, None), "scheduler", None),
+                        start, success, server, target,
+                    ),
+                )
+                captured["next_run"] = self._task_next_run
+                if task_success is None:
+                    if self._task_next_run is not None:
+                        self._sync_entry_scheduler_next_run(entry, self._task_next_run)
+                    return None
             except RequestHumanTakeover:
                 raise
             except Exception as exc:
@@ -416,17 +403,21 @@ class ScriptTask(MultiAccountRepeatNewBase):
                 )
                 task_success = False
             finally:
-                if task_success:
-                    active = getattr(self.config.model, task_key, None)
-                    if isinstance(active, BaseModel):
-                        entry.runtime_record = self._runtime_diff(baseline, active.model_dump()) or {}
-                    self._sync_entry_scheduler_next_run(
-                        entry,
-                        captured["next_run"]
-                        or self._fallback_next_run(task_name, entry, success=True),
-                    )
-                self._restore_timed_task_config(backup)
-                self.config._save_selected_fields = previous
+                try:
+                    if task_success:
+                        active = getattr(self.config.model, task_key, None)
+                        if isinstance(active, BaseModel):
+                            entry.runtime_record = self._runtime_diff(baseline, active.model_dump()) or {}
+                        self._sync_entry_scheduler_next_run(
+                            entry,
+                            captured["next_run"]
+                            or self._fallback_next_run(task_name, entry, success=True),
+                        )
+                finally:
+                    try:
+                        self._restore_timed_task_config(backup)
+                    finally:
+                        self.config._save_selected_fields = previous
 
             if task_success:
                 logger.info(
