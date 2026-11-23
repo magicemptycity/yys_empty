@@ -78,7 +78,7 @@ page_login = Page(SwitchAccountAssets.I_CHECK_LOGIN_FORM, category="global")
 page_login.add_enter_success_hooks(handle_login_page)
 
 # 庭院主页(此处通过提高阈值来处理部分探索章节会识别成原始庭院的问题, 后续有其他更好方法需改善)
-page_main = Page(any_of(GameUiAssets.I_CHECK_MAIN, GameUiAssets.I_MAIN_SCROLL_CLOSE, GameUiAssets.I_MAIN_GOTO_SHIKIGAMI_RECORDS), category="global")
+page_main = Page(GameUiAssets.I_CHECK_MAIN, category="global")
 page_main.add_enter_success_hooks(
     GameUiAssets.I_AD_CLOSE_RED,
     GlobalGameAssets.I_UI_BACK_RED,

@@ -83,10 +83,8 @@ class LoginService(
             if self.appear_then_click(self.I_CANCEL_BATTLE, interval=0.8):
                 logger.info('Cancel continue battle')
                 continue
-            if (self.appear(self.I_CHECK_MAIN, interval=0.2)
-                    or self.appear(self.I_MAIN_SCROLL_CLOSE, interval=0.2)) \
-                    and not self.appear(self.I_MAIN_GOTO_SHIKIGAMI_RECORDS):
-                logger.info('Courtyard menu is collapsed; open it before confirming login')
+            if self.appear(self.I_CHECK_MAIN, interval=0.2) and not self.appear(self.I_MAIN_GOTO_SHIKIGAMI_RECORDS):
+                logger.info('The main had already appeared, but shikigami records had not yet appeared')
                 skip_login_animation = False
                 if self.click(self.C_LOGIN_SCROLL_CLOSE_AREA, interval=2):
                     continue
