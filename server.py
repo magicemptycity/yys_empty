@@ -81,31 +81,18 @@ def fun(ev: threading.Event):
     logger.attr("Port", port)
     logger.attr("Reload", ev is not None)
 
-    from deploy.instance import InstanceError, InstanceRuntime
+    ensure_image_server_ready()
+    ensure_ocr_server_ready()
 
     try:
-        with InstanceRuntime(host=host, port=port) as runtime:
-            State.instance_runtime = runtime
-            State.instance_record = runtime.record
-            service = uvicorn.Server(uvicorn.Config(
-                "module.server.app:fastapi_app", host=host, port=port,
-                factory=True, log_config=None,
-            ))
-            State.server = service
-            try:
-                ensure_image_server_ready()
-                ensure_ocr_server_ready()
-                runtime.update_children()
-                service.run()
-            finally:
-                shutdown_image_server()
-                shutdown_ocr_server()
-                State.server = None
-                State.instance_record = None
-                State.instance_runtime = None
-    except InstanceError as exc:
-        logger.error(str(exc))
-        raise SystemExit(1) from exc
+        uvicorn.run("module.server.app:fastapi_app",
+                    host=host,
+                    port=port,
+                    factory=True,
+                    log_config=None)
+    finally:
+        shutdown_image_server()
+        shutdown_ocr_server()
 
 
 if __name__ == "__main__":

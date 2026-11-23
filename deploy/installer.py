@@ -11,19 +11,15 @@ from deploy.pip import PipManager
 
 
 class Installer(GitManager, PipManager, AdbManager, FluentuiManager, ProcessManager):
-    def install(self, *, skip_adb=False):
+    def install(self):
         try:
-            self.process_kill()
             self.git_install()
+            self.process_kill()
             self.pip_install()
-            if not skip_adb:
-                self.adb_install()
+            self.adb_install()
         except ExecutionError:
             exit(1)
 
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--skip-adb", action="store_true", help="Keep shared ADB and emulator agents unchanged")
-    Installer().install(skip_adb=parser.parse_args().skip_adb)
+    Installer().install()

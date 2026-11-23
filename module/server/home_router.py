@@ -4,7 +4,7 @@
 import asyncio
 import json
 import threading
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body
 from pathlib import Path
 
 from module.config.utils import write_file
@@ -12,7 +12,6 @@ from module.image.rpc import ensure_image_server_ready, get_image_client, shutdo
 from module.logger import logger
 from module.server.api_logger import ApiLoggingRoute
 from module.ocr.rpc import ensure_ocr_server_ready, get_ocr_client, shutdown_ocr_server
-from module.server.setting import State
 from module.server.main_manager import MainManager
 from module.server.updater import Updater
 from module.server.i18n import I18n
@@ -64,33 +63,11 @@ async def notify_test(setting: str, title: str, content: str):
         return str(e)
 
 
-@home_app.get('/instance')
-async def instance_info():
-    return State.instance_record or {}
-
-
-def _request_shutdown():
-    if State.server is not None:
-        State.server.should_exit = True
-    else:
-        # Compatibility for old launchers which do not own a Uvicorn Server.
-        shutdown_image_server()
-        shutdown_ocr_server()
-        MainManager.signal_kill_server = True
-
-
-@home_app.post('/stop_instance')
-async def stop_instance(identity: dict = Body(...)):
-    record = State.instance_record
-    if not record or any(identity.get(key) != record.get(key) for key in ('instance_id', 'run_id')):
-        raise HTTPException(status_code=409, detail="Instance identity changed; refusing shutdown")
-    _request_shutdown()
-    return 'success'
-
-
 @home_app.get('/kill_server')
 async def kill_server():
-    _request_shutdown()
+    shutdown_image_server()
+    shutdown_ocr_server()
+    MainManager.signal_kill_server = True
     return 'success'
 
 

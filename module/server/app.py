@@ -38,10 +38,8 @@ from module.server.main_manager import mm
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await on_startup()
-    try:
-        yield
-    finally:
-        await on_shutdown()
+    yield
+    await on_shutdown()
 
 app = FastAPI(
     title='OAS',
@@ -92,8 +90,6 @@ async def on_startup():
 
 
 async def on_shutdown():
-    for script_process in mm.script_process.values():
-        await script_process.stop()
     logger.info('OAS web service shutdown done')
 
 
