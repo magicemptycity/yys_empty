@@ -5,6 +5,7 @@ from time import sleep
 
 import random
 from datetime import time, datetime, timedelta
+from enum import Enum, auto
 
 from module.logger import logger
 from module.exception import TaskEnd
@@ -20,6 +21,16 @@ from tasks.Component.SwitchSoul.switch_soul import SwitchSoul
 from tasks.GameUi.page import page_main, page_shikigami_records, page_town
 
 """ 斗技 """
+
+DUEL_OPEN_TIME = time(12)
+
+
+class DuelStopReason(Enum):
+    TIME_LIMIT = auto()
+    TARGET_SCORE = auto()
+    CELEB_DISABLED = auto()
+    PRACTICE = auto()
+    HONOR_FULL = auto()
 
 
 class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
@@ -46,7 +57,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
 
     def run(self):
         current_time = datetime.now().time()
-        if not (time(12, 00) <= current_time < time(23, 00)):
+        if not (DUEL_OPEN_TIME <= current_time < time(23)):
             self.set_next_run(task='Duel', success=True, finish=False)
             raise TaskEnd('Duel')
         self.conf = self.config.duel
@@ -60,14 +71,21 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if not self.duel_main():
                 self.goto_page(page_duel)
                 continue
-            if not self.can_start_duel():
+            stop_reason = self._duel_stop_reason()
+            if stop_reason is not None:
                 break
             # 只在斗技主界面的安全节点检查，避免匹配、选式神或战斗中途退出。
             self.yield_to_higher_priority_task()
             self.start_duel()
         logger.info('Duel battle end')
         self.goto_page(page_main)
-        self.set_next_run(task='Duel', success=True, finish=True)
+        if stop_reason in (DuelStopReason.TARGET_SCORE, DuelStopReason.HONOR_FULL):
+            today = datetime.now().date()
+            next_monday = today + timedelta(days=7 - today.weekday())
+            # 只传固定时刻，不让成功间隔或强制执行规则覆盖下周一。
+            self.set_next_run(task='Duel', server=False, target=datetime.combine(next_monday, DUEL_OPEN_TIME))
+        else:
+            self.set_next_run(task='Duel', success=True, finish=True)
         raise TaskEnd('Duel')
 
     def prepare_duel(self):
@@ -105,28 +123,28 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
         # 不修改斗技原有的 next_run，使高优先级任务结束后可以继续调度斗技。
         raise TaskEnd('Duel')
 
-    def can_start_duel(self) -> bool:
-        """是否可以运行斗技"""
+    def _duel_stop_reason(self) -> DuelStopReason | None:
+        """按原顺序判断退出原因，返回 None 表示可以继续。"""
         # 任务执行时间超过限制时间，退出
         if datetime.now() - self.start_time >= self.limit_time:
             logger.info('Duel task is over time')
-            return False
+            return DuelStopReason.TIME_LIMIT
         # 当前分数跟目标分数比较, 判断分数是否已经满足条件
         if self.get_and_update_cur_score() >= self.conf.duel_config.target_score:
             logger.info('Duel task is over score')
-            return False
+            return DuelStopReason.TARGET_SCORE
         # 若不开启名仕战斗, 则到达名士直接退出
         if not self.conf.duel_celeb_config.celeb_battle and self.is_celeb:
             logger.info('You are already a celeb（名仕）')
-            return False
+            return DuelStopReason.CELEB_DISABLED
         # 练习
         if self.appear(self.I_BATTLE_WITH_TRAIN) or self.appear(self.I_BATTLE_WITH_TRAIN2):
-            return False
+            return DuelStopReason.PRACTICE
         # 荣誉满了，退出
         if self.conf.duel_config.honor_full_exit and self.check_honor():
             logger.info('Duel task is over honor')
-            return False
-        return True
+            return DuelStopReason.HONOR_FULL
+        return None
 
     def start_duel(self):
         """进行一次斗技"""
@@ -291,7 +309,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
         roi_h = self.I_DUEL_HONOR.roi_front[3]
         self.O_D_HONOR.roi = [roi_x, roi_y, roi_w, roi_h]
         current, remain, total = self.O_D_HONOR.ocr(self.device.image)
-        return current == total and remain == 0
+        return total > 0 and current == total and remain == 0
 
     def get_and_update_cur_score(self, skip_screenshot: bool = True) -> int:
         """
