@@ -36,10 +36,10 @@ class SwitchAccount(LoginAccount, ExitGame, GameUi, SwitchAccountAssets):
         # 判断所处界面
         curPage = self.get_current_page()
 
-        if curPage != page_login and curPage != page_main:
-            self.goto_page(page_main)
-            curPage = self.get_current_page()
-        if curPage == page_main:
+        if curPage != page_login:
+            if curPage != page_main:
+                self.goto_page(page_main)
+            # goto_page 已确认到达庭院；不要因再次识别失败而漏掉退出账号。
             self.exitGame()
 
         # 处于登录界面
@@ -50,6 +50,7 @@ class SwitchAccount(LoginAccount, ExitGame, GameUi, SwitchAccountAssets):
         login_handler = LoginService(config=self.config, device=self.device)
         login_handler.set_specific_usr(self.to_account_info.svr)
         login_handler.app_handle_login()
+        self.device.current_account_info = self.to_account_info
 
         return True
 
