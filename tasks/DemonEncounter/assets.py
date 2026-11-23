@@ -23,7 +23,7 @@ class DemonEncounterAssets:
 	# 荒骷髅 
 	I_BOSS_ODOKURO = RuleImage(roi_front=(596,287,100,100), roi_back=(596,287,100,100), threshold=0.8, method="Template matching", file="./tasks/DemonEncounter/boss/boss_boss_odokuro.png")
 	# 胧车 
-	I_BOSS_OBOROGURUMA = RuleImage(roi_front=(588,285,100,100), roi_back=(588,285,100,100), threshold=0.8, method="Template matching", file="./tasks/DemonEncounter/boss/boss_boss_oboroguruma.png")
+	I_BOSS_OBOROGURUMA = RuleImage(roi_front=(588,285,100,100), roi_back=(464,240,333,236), threshold=0.8, method="Template matching", file="./tasks/DemonEncounter/boss/boss_boss_oboroguruma.png")
 	# 土蜘蛛 
 	I_BOSS_TSUCHIGUMO = RuleImage(roi_front=(603,294,100,66), roi_back=(603,294,100,66), threshold=0.8, method="Template matching", file="./tasks/DemonEncounter/boss/boss_boss_tsuchigumo.png")
 	# 歌姬 

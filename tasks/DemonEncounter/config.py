@@ -34,8 +34,7 @@ class BestDemonBossSelect(BaseModel):
     best_demon_oboroguruma_select: bool = Field(title='Best Oboroguruma Select', default=False, description='极胧车是否开启')
     best_demon_nightly_aramitama_select: bool = Field(title='Best Nightly Aramitama Select', default=False, description='极夜荒魂是否开启')
 
-    hide_fields = dynamic_hide('best_demon_kiryou_utahime_select', 'best_demon_oboroguruma_select',
-                               'best_demon_nightly_aramitama_select')
+    hide_fields = dynamic_hide('best_demon_kiryou_utahime_select', 'best_demon_nightly_aramitama_select')
 
 
 # 不同封魔boss的御魂配置
@@ -74,8 +73,7 @@ class BestDemonConfig(BaseModel):
     best_demon_oboroguruma: str = Field(default="group,team", description="极胧车御魂")
     best_demon_nightly_aramitamau: str = Field(default="group,team", description="极夜荒魂御魂")
 
-    hide_fields = dynamic_hide('best_demon_kiryou_utahime', 'best_demon_oboroguruma',
-                               'best_demon_nightly_aramitamau')
+    hide_fields = dynamic_hide('best_demon_kiryou_utahime', 'best_demon_nightly_aramitamau')
 
 
 def convert_to_general_battle_config(boss_type: str, demon_battle_conf: 'DemonBattleConfig' = None,
@@ -123,8 +121,7 @@ class BestDemonBattleConfig(BaseModel):
     best_demon_nightly_aramitama_enable: bool = Field(default=False)
     best_demon_nightly_aramitamau: str = Field(default="-1,-1", description="极夜荒魂预设")
 
-    hide_fields = dynamic_hide('best_demon_oboroguruma_enable', 'best_demon_oboroguruma',
-                               'best_demon_nightly_aramitama_enable', 'best_demon_nightly_aramitamau')
+    hide_fields = dynamic_hide('best_demon_nightly_aramitama_enable', 'best_demon_nightly_aramitamau')
 
 
 class UtilizeScheduler(Scheduler):

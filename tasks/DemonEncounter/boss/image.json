@@ -30,7 +30,7 @@
     "itemName": "boss_oboroguruma",
     "imageName": "boss_boss_oboroguruma.png",
     "roiFront": "588,285,100,100",
-    "roiBack": "588,285,100,100",
+    "roiBack": "464,240,333,236",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "胧车"

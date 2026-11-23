@@ -42,12 +42,7 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         if not self.check_time():
             logger.warning('Time is not right')
             raise TaskEnd('DemonEncounter')
-        # 切换御魂
-        soul_config = self.config.demon_encounter.demon_soul_config
-        best_soul_config = self.config.demon_encounter.best_demon_soul_config
-        if soul_config.enable or best_soul_config.enable:
-            self.goto_page(page_shikigami_records)
-            self.checkout_soul()
+        self.checkout_soul()
         self.goto_page(page_rwt)
         if not self._check_challenge_count():
             logger.info('No challenge count left today, finish DemonEncounter')
@@ -170,15 +165,18 @@ class ScriptTask(GameUi, GeneralBattle, DemonEncounterAssets, SwitchSoul):
         """
         切换御魂
         """
-        select_best_demon = getattr(self.conf.best_demon_boss_config, f'{self.boss_type}_select', False)
-        if select_best_demon:
-            group, team = getattr(self.conf.best_demon_soul_config, self.boss_type).split(",")
-        else:
-            group, team = getattr(self.conf.demon_soul_config, self.boss_type).split(",")
-        if group and team:
-            self.run_switch_soul_by_name(group, team)
+        boss_type = self.boss_type
+        soul_config = (self.conf.best_demon_soul_config if boss_type.startswith('best_demon_')
+                       else self.conf.demon_soul_config)
+        if not soul_config.enable:
             return
-        logger.error(f'Unknown switch soul conf: group[{group}], team[{team}]')
+        preset = getattr(soul_config, boss_type, '')
+        names = [name.strip() for name in preset.split(',')]
+        if len(names) != 2 or not all(names) or names == ['group', 'team']:
+            logger.warning(f'Invalid soul preset for {boss_type}: {preset!r}')
+            return
+        self.goto_page(page_shikigami_records)
+        self.run_switch_soul_by_name(*names)
 
     def _check_challenge_count(self) -> bool:
         """
