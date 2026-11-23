@@ -50,12 +50,15 @@ class ScriptProcess(ScriptWSManager):
             logger.warning(f'Script {self.config_name} is initialized')
         if self._process and self._process.is_alive():
             logger.warning(f'Script {self.config_name} is already running and first stop it')
-            self.stop()
+            await self.stop()
         self._process = multiprocessing.Process(target=func,
                                                 args=(self.config_name, self.state_queue, self.log_pipe_in,),
                                                 name=self.config_name,
                                                 daemon=True)
         self._process.start()
+        from module.server.setting import State
+        if State.instance_runtime is not None:
+            State.instance_runtime.update_children()
 
 
     async def stop(self):
@@ -68,6 +71,10 @@ class ScriptProcess(ScriptWSManager):
             logger.warning(f'Script {self.config_name} is not running')
             return
         self._process.terminate()
+        self._process.join(timeout=2)
+        if self._process.is_alive():
+            self._process.kill()
+            self._process.join(timeout=1)
         self._process = None
 
     async def coroutine_broadcast_state(self):

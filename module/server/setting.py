@@ -58,6 +58,10 @@ class State:
     _init = False
     _clearup = False
 
+    server = None
+    instance_record: dict | None = None
+    instance_runtime = None
+
     restart_event: threading.Event = None
     manager: SyncManager = None
 
