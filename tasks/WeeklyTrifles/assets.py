@@ -65,7 +65,7 @@ class WeeklyTriflesAssets:
 	# 二维码
 	I_WT_QR_CODE = RuleImage(roi_front=(473,161,336,96), roi_back=(404,112,483,168), threshold=0.65, method="Template matching", file="./tasks/WeeklyTrifles/collect/collect_wt_qr_code.png")
 	# 式神图鉴头像旁边的分享按钮
-	I_WT_SHARE = RuleImage(roi_front=(331,282,60,53), roi_back=(133,243,270,120), threshold=0.8, method="Template matching", file="./tasks/WeeklyTrifles/collect/collect_wt_share.png")
+	I_WT_SHARE = RuleImage(roi_front=(834,610,35,27), roi_back=(630,544,270,120), threshold=0.8, method="Template matching", file="./tasks/WeeklyTrifles/collect/collect_wt_share.png")
 
 
 	# Image Rule Assets
