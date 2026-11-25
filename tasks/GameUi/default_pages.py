@@ -74,7 +74,7 @@ def handle_login_page(task) -> bool:
 
 
 # 登录页。
-page_login = Page(SwitchAccountAssets.I_CHECK_LOGIN_FORM, category="global")
+page_login = Page(SwitchAccountAssets.I_CHECK_LOGIN_FORM_16, category="global")
 page_login.add_enter_success_hooks(handle_login_page)
 
 # 庭院主页(此处通过提高阈值来处理部分探索章节会识别成原始庭院的问题, 后续有其他更好方法需改善)

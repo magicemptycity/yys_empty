@@ -159,7 +159,7 @@ class LoginService(
                 continue
 
             # 进入登录页面后或点击超过一定次数不再处理登录动画逻辑
-            if self.appear(self.I_LOGIN_8, interval=0.6) or skip_click_mx_cnt <= 0:
+            if self.appear(self.I_LOGIN_16, interval=0.6) or skip_click_mx_cnt <= 0:
                 skip_login_animation = False
             if skip_login_animation:
                 if self.ocr_appear_click(self.O_LOGIN_ANIMATION_SKIP, interval=2.5):  # 点击跳过登录动画

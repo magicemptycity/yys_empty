@@ -79,7 +79,7 @@ class RestartAssets:
 	I_LOGIN_RED_CLOSE = RuleImage(roi_front=(800,0,480,290), roi_back=(800,0,480,290), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_red_close.png")
 	# description 
 	I_LOGIN_YELLOW_CLOSE = RuleImage(roi_front=(29,17,46,44), roi_back=(0,0,94,86), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_yellow_close.png")
-	# 用于判断是否出现登录选区的 
+	# 用于判断是否出现登录选区的（8+）
 	I_LOGIN_8 = RuleImage(roi_front=(178,572,53,60), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_8.png")
 	# 登录时候不观看CG视频 
 	I_WATCH_VIDEO_CANCEL = RuleImage(roi_front=(466,396,130,61), roi_back=(466,396,130,61), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_watch_video_cancel.png")
@@ -109,6 +109,8 @@ class RestartAssets:
 	I_RETURN_CHESS_CANCEL = RuleImage(roi_front=(432,400,181,69), roi_back=(400,370,240,120), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_return_chess_cancel.png")
 	# 抵扣券选择 
 	I_CHOOSE = RuleImage(roi_front=(299,613,170,46), roi_back=(0,0,1143,720), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_choose.png")
+	# 用于判断是否出现登录选区的（16+）
+	I_LOGIN_16 = RuleImage(roi_front=(178,572,53,60), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Restart/login/login_login_16.png")
 
 
 	# Ocr Rule Assets

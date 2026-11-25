@@ -70,6 +70,8 @@ class SwitchAccountAssets:
 	I_SA_CHECK_SELECT_SVR_4 = RuleImage(roi_front=(527,38,225,61), roi_back=(491,0,317,132), threshold=0.8, method="Template matching", file="./tasks/Component/SwitchAccount/res/res_sa_check_select_svr_4.png")
 	# 选择区服时新区集结提示的取消按钮，用于识别并点击
 	I_SA_NEW_SERVER_RALLY_CANCEL = RuleImage(roi_front=(463,425,138,58), roi_back=(450,412,165,85), threshold=0.85, method="Template matching", file="./tasks/Component/SwitchAccount/res/sa_new_server_rally_cancel.png")
+	# 用于判断是否在登录界面的
+	I_CHECK_LOGIN_FORM_16 = RuleImage(roi_front=(14,565,51,56), roi_back=(1,547,241,105), threshold=0.8, method="Template matching", file="./tasks/Component/SwitchAccount/res/res_check_login_form_16.png")
 
 
 	# Ocr Rule Assets

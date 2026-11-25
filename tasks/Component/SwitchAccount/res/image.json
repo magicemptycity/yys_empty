@@ -142,5 +142,14 @@
     "method": "Template matching",
     "threshold": 0.85,
     "description": "选择区服时新区集结提示的取消按钮，用于识别并点击"
+  },
+  {
+    "itemName": "check_login_form_16",
+    "imageName": "res_check_login_form_16.png",
+    "roiFront": "14,565,51,56",
+    "roiBack": "1,547,241,105",
+    "method": "Template matching",
+    "threshold": 0.8,
+    "description": "用于判断是否在登录界面的"
   }
 ]
