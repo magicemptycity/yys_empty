@@ -61,7 +61,7 @@ class DuelAssets:
 	# 活动的战斗按钮 
 	I_D_BATTLE2 = RuleImage(roi_front=(1171,592,69,78), roi_back=(1119,566,154,143), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_d_battle2.png")
 	# 禁用 
-	I_BAN = RuleImage(roi_front=(1139,565,77,72), roi_back=(1122,545,114,116), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_ban.png")
+	I_BAN = RuleImage(roi_front=(1139,565,77,72), roi_back=(1122,545,100,116), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_ban.png")
 	# 左上角的退出 
 	I_DUEL_EXIT = RuleImage(roi_front=(14,12,43,41), roi_back=(14,12,43,41), threshold=0.8, method="Template matching", file="./tasks/Duel/duel/duel_duel_exit.png")
 	# ban选界面 

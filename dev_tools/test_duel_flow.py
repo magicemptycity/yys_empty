@@ -15,6 +15,9 @@ FRAMES = {
     'town': {Task.I_CHECK_TOWN.name},
     'duel': {Task.I_CHECK_DUEL.name, Task.I_D_HELP.name, Task.I_D_BATTLE.name},
     'prepare': {Task.I_D_PREPARE.name},
+    'ban': {Task.I_BAN.name},
+    'ban_wait': {Task.I_D_WORD_BATTLE.name},
+    'select': {Task.I_D_AUTO_ENTRY.name},
     'battle': {Task.I_BATTLE_INFO.name},
     'manual': {Task.I_BATTLE_INFO.name, Task.O_BATTLE_HAND.name},
     'auto': {Task.I_BATTLE_INFO.name, Task.O_BATTLE_AUTO.name},
@@ -151,3 +154,24 @@ def test_prepare_and_wait_can_handoff_directly_to_settlement(clock):
     task.battle_prepare()
     assert task.wait_battle() is True
     assert task.green_marks == 0
+
+
+@pytest.mark.parametrize('empty_reads', [0, 2])
+def test_celeb_checks_fifth_only_on_selection_screen(clock, monkeypatch, empty_reads):
+    frames = ['ban', 'ban'] + ['ban_wait'] * 6 + ['prepare']
+    # The first auto-entry click rechecks against a loading frame and is retried.
+    frames += ['select'] * (empty_reads + 1) + ['loading', 'select', 'select', 'battle']
+    task = Harness(clock, frames)
+    task.conf.duel_celeb_config = SimpleNamespace(ban_name='孔雀明王')
+    names = iter([''] * empty_reads + ['孔雀明王'])
+
+    def read_name(image):
+        assert task.frame == 'select', 'OCR started before reaching selection'
+        return next(names)
+
+    monkeypatch.setattr(task.O_D_BAN_NAME, 'ocr', read_name)
+    task.battle_prepare()
+
+    expected = [Task.I_BAN.name] + [Task.C_DUEL_CLICK_5.name] * empty_reads + [Task.I_D_AUTO_ENTRY.name]
+    assert task.clicks == expected
+    assert task.is_celeb and not task.exits

@@ -147,7 +147,7 @@
     "itemName": "ban",
     "imageName": "duel_ban.png",
     "roiFront": "1139,565,77,72",
-    "roiBack": "1122,545,114,116",
+    "roiBack": "1122,545,100,116",
     "method": "Template matching",
     "threshold": 0.8,
     "description": "禁用"

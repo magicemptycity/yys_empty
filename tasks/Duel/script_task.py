@@ -195,6 +195,7 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
         """选式神准备斗技阶段"""
         logger.hr('duel battle preparing')
         not_in_prepare_cnt, max_retry = 0, 3
+        fifth_checked = False
         while True:
             if not_in_prepare_cnt >= max_retry:  # max_retry次识别不到任何阶段元素(准备,战斗,结算), 退出
                 break
@@ -210,8 +211,10 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
             if self.appear_then_click(self.I_BAN, interval=1.2):
                 self.is_celeb = True
                 continue
-            # 名仕不开启自动上阵, 根据最后一个式神的名字是否改变来检查自己式神是否被ban
-            if not self.appear(self.I_D_CHECK_BAN, interval=0.8) and self.is_celeb:
+            # 名仕等到选人画面再检查第五手，通过后走共用上阵流程。
+            if self.is_celeb and not fifth_checked:
+                if not self.appear(self.I_D_AUTO_ENTRY) or self.appear(self.I_D_CHECK_BAN):
+                    continue
                 ocr_name = self.O_D_BAN_NAME.ocr(self.device.image)
                 shikigami_banned = ocr_name != '' and not any(
                     char in ocr_name for char in self.conf.duel_celeb_config.ban_name)
@@ -219,9 +222,11 @@ class ScriptTask(GameUi, GeneralBattle, SwitchSoul, DuelAssets, SwitchOnmyoji):
                 if shikigami_banned:
                     self.duel_exit_battle()
                     continue
-                self.click(self.C_DUEL_CLICK_5, interval=random.uniform(0.7, 1.4))
-                sleep(random.uniform(1.5, 3))  # 降低点击频率和ocr识别频率
-                continue
+                if not ocr_name:
+                    self.click(self.C_DUEL_CLICK_5, interval=random.uniform(0.7, 1.4))
+                    sleep(random.uniform(1.5, 3))  # 降低点击频率和ocr识别频率
+                    continue
+                fifth_checked = True
             # 点击自动上阵或准备
             if self.appear_then_click(self.I_D_AUTO_ENTRY, interval=1.2) or \
                     self.appear_then_click(self.I_D_PREPARE, interval=1.2):
